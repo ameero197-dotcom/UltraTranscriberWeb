@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .              # لازم يكون ملف UltraTranscriberWeb.py و Dockerfile بنفس هذا المجلد
+      dockerfile: Dockerfile
+    container_name: ultra-transcriber-web
+    ports:
+      - "7860:7860"
+    environment:
+      - BILLING_MODE=${BILLING_MODE:-ads}
+      - ADSENSE_CLIENT=${ADSENSE_CLIENT:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PRICE_ID=${STRIPE_PRICE_ID:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - APP_SECRET=${APP_SECRET:-change-me-please}
+      - BASE_URL=${BASE_URL:-http://localhost:7860}
+    volumes:
+      - transcripts_data:/app/transcripts
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7860/dashboard"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  transcripts_data:
+  uploads_data:
