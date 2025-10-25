@@ -26,6 +26,32 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Callable
 from datetime import datetime
 
+os.environ["HF_HOME"] = "/tmp/hf_cache"
+
+
+# ✨ مسارات آمنة للكتابة على Hugging Face (داخل /tmp)
+BASE_DIR = Path(os.getenv("APP_DATA_DIR", "/tmp/ultra"))
+UPLOAD_DIR = BASE_DIR / "uploads"
+TRANS_DIR = BASE_DIR / "transcripts"
+DB_PATH   = BASE_DIR / "utweb_pro.sqlite3"
+
+# أنشئ المجلدات قبل أي استخدام
+BASE_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+TRANS_DIR.mkdir(parents=True, exist_ok=True)
+
+# 🔐 اللوج إلى /tmp أيضاً
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(
+    filename=str(LOG_DIR / "ultra_transcriber_pro.log"),
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    encoding="utf-8",
+)
+
+
 from fastapi import FastAPI, Request, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -50,13 +76,6 @@ BASE_URL = os.getenv("BASE_URL", "http://localhost:7860")  # اختياري
 if STRIPE_SECRET_KEY:
     stripe_sdk.api_key = STRIPE_SECRET_KEY
 
-BASE_DIR = Path.cwd()
-UPLOAD_DIR = BASE_DIR / "uploads"
-TRANS_DIR = BASE_DIR / "transcripts"
-DB_PATH = BASE_DIR / "utweb_pro.sqlite3"
-
-UPLOAD_DIR.mkdir(exist_ok=True)
-TRANS_DIR.mkdir(exist_ok=True)
 
 logging.basicConfig(
     filename="ultra_transcriber_pro.log",
@@ -416,14 +435,11 @@ MODERN_STYLE = """
   --accent2:#764ba2;
   --muted:#a1a8c3;
 }
-
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif;background:var(--bg);color:#fff}
-
 .container{max-width:1100px;margin:0 auto;padding:1.25rem}
 @media (min-width:768px){ .container{padding:2rem} }
-
 .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:1.25rem}
 .header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
 .logo-section{display:flex;align-items:center;gap:1rem}
@@ -433,7 +449,6 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-ser
 .lang-switch{display:flex;gap:.5rem}
 .lang-btn{padding:.5rem 1rem;border-radius:8px;border:1px solid var(--border);background:var(--soft);color:#cfd3ff;cursor:pointer}
 .lang-btn.active{background:#6366f1;color:#fff}
-
 .input, select{
   width:100%;padding:.9rem 1rem;border-radius:12px;
   border:1px solid var(--border);
@@ -441,18 +456,15 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-ser
   color:#fff;outline:none;
 }
 select option{background:#0f1535;color:#fff}
-
 .btn{padding:.9rem 1.1rem;border:0;border-radius:12px;cursor:pointer}
 .btn-primary{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff}
 .btn-secondary{background:var(--soft);color:#cfd3ff;border:1px solid var(--border)}
 .btn-icon{min-width:44px}
-
 .upload-zone{border:2px dashed rgba(99,102,241,.35);border-radius:16px;padding:2rem;text-align:center;cursor:pointer;margin-top:1rem}
 .file-list{display:flex;flex-direction:column;gap:.75rem;margin-top:1rem}
 .file-item{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--soft)}
 .progress-container{height:12px;border-radius:12px;background:rgba(99,102,241,.12);overflow:hidden}
 .progress-bar{height:100%;background:linear-gradient(135deg,var(--accent1),var(--accent2));width:0%}
-
 .status-panel{margin-top:1rem;padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--soft)}
 .preview-section{margin-top:1rem;padding:1rem;border:1px solid var(--border);border-radius:12px;background:var(--soft)}
 .badge{display:inline-block;padding:.25rem .5rem;border:1px solid rgba(99,102,241,.3);border-radius:8px;color:#6366f1;background:rgba(99,102,241,.15)}
@@ -461,7 +473,6 @@ select option{background:#0f1535;color:#fff}
 .help{font-size:.9rem;color:var(--muted);margin-top:.5rem}
 .help-box{margin-top:1rem;padding:1rem;border:1px dashed rgba(99,102,241,.3);border-radius:12px;color:#cfd3ff;background:rgba(99,102,241,.06)}
 .tooltip{display:inline-block;margin-left:.4rem;opacity:.8}
-
 /* شبكة الإعدادات: تباعد احترافي وتجربة متجاوبة */
 .settings-grid{
   display:grid;
@@ -476,10 +487,8 @@ select option{background:#0f1535;color:#fff}
 @media (min-width:1024px){
   .setting-item{grid-column:span 3}
 }
-
 .label{display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;font-weight:600}
 .help-inline{font-size:.85rem;color:var(--muted);margin-top:.35rem}
-
 .results-header{display:flex;gap:.75rem;align-items:center}
 .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;margin-right:.5rem}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -585,7 +594,12 @@ def render_dashboard(user: dict, subscribed: bool, lang: str = "en") -> HTMLResp
         + "<div id='statusPanel' style='display:none;'></div>"
         + "</div>"  # .card
         + ads_section
-        + "<div style='text-align:center;margin-top:2rem;color:#a1a8c3;font-size:0.875rem;'>© " + str(datetime.utcnow().year) + " " + t("app_title") + " • Powered by AI</div>"
+        + "<div style='text-align:center;margin-top:2rem;color:#a1a8c3;font-size:0.875rem;'>"
+        + "© " + str(datetime.utcnow().year) + " Ultra Transcriber • "
+        + "<a href='/about' style='color:#a1a8c3;'>About</a> • "
+        + "<a href='/privacy' style='color:#a1a8c3;'>Privacy Policy</a> • "
+        + "<a href='/contact' style='color:#a1a8c3;'>Contact</a>"
+        + "</div>"
         + "</div>"  # .container
     )
 
@@ -601,7 +615,6 @@ const fileList=document.getElementById('fileList');
 uploadZone.addEventListener('dragover',function(e){e.preventDefault();});
 uploadZone.addEventListener('drop',function(e){e.preventDefault();handleFiles(e.dataTransfer.files);});
 fileInput.addEventListener('change',function(e){handleFiles(e.target.files);});
-
 function handleFiles(files){selectedFiles=Array.from(files);displayFiles();}
 function displayFiles(){
   if(selectedFiles.length===0){fileList.style.display='none';return;}
@@ -618,7 +631,6 @@ function displayFiles(){
 }
 function removeFile(i){selectedFiles.splice(i,1);displayFiles();}
 function formatFileSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';if(b<1073741824)return (b/1048576).toFixed(1)+' MB';return (b/1073741824).toFixed(1)+' GB';}
-
 async function startTranscription(){
   if(selectedFiles.length===0){alert('Please select files first!');return;}
   var fd=new FormData();
@@ -642,7 +654,6 @@ async function startTranscription(){
     btn.disabled=false;btn.innerHTML='<span>🚀</span> '+t.start_transcription;
   }
 }
-
 function showStatusPanel(){
   var p=document.getElementById('statusPanel');p.style.display='block';
   p.innerHTML=
@@ -655,7 +666,6 @@ function showStatusPanel(){
       '<div id="logsContainer" style="margin-top:1rem;max-height:260px;overflow:auto;"></div>'+
     '</div>';
 }
-
 async function pollJobStatus(){
   try{
     var r=await fetch('/api/job/'+currentJobId);var d=await r.json();
@@ -667,7 +677,6 @@ async function pollJobStatus(){
     console.error('Polling error:',e);setTimeout(pollJobStatus,2500);
   }
 }
-
 function updateProgress(d){
   var pr=d.progress||0;
   var bar=document.getElementById('progressBar');if(bar){bar.style.width=pr+'%';}
@@ -691,7 +700,6 @@ function updateProgress(d){
     }
   }
 }
-
 function showResults(d){
   var p=document.getElementById('statusPanel');
   var zipPart=d.zip_url?('<a href="'+d.zip_url+'" download class="btn btn-primary" style="flex:1;"><span>📦</span> '+t.download_zip+'</a>'):'';
@@ -709,7 +717,6 @@ function showResults(d){
     '</div>';
   selectedFiles=[];displayFiles();
 }
-
 function showError(d){
   var p=document.getElementById('statusPanel');
   var msg=(d && (d.message||d.logs))||'Unknown error';
@@ -720,7 +727,6 @@ function showError(d){
       '<button class="btn btn-primary" onclick="location.reload()" style="margin-top:1rem;">🔄 Try Again</button>'+
     '</div>';
 }
-
 function togglePreview(){
   var c=document.getElementById('previewContent');var i=document.getElementById('previewIcon');
   if(c&&i){if(c.style.display==='none'){c.style.display='block';i.textContent='▼';}else{c.style.display='none';i.textContent='▶️';}}
@@ -733,6 +739,103 @@ function escapeHtml(t){var d=document.createElement('div');d.textContent=t;retur
     tail = "</body></html>"
     html = head + script + tail
     return HTMLResponse(html)
+
+# ---------------- Reusable Page Renderer (same look as dashboard) ----------------
+def render_simple_page(page_title: str, body_html: str, lang: str = "en") -> HTMLResponse:
+    dir_attr = "rtl" if lang == "ar" else "ltr"
+
+    # قسم الإعلانات نفسه المستخدم في الـ dashboard (يظهر فقط إذا ADSENSE_CLIENT موجود)
+    ads_section = ""
+    if ADSENSE_CLIENT:
+        ads_section = (
+            '<div class="card" style="margin-top: 2rem;">'
+            '<div style="text-align:center;padding:1rem;color:#a1a8c3;font-size:0.875rem;margin-bottom:1rem;">📢 Advertisement</div>'
+            '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT + '" crossorigin="anonymous"></script>'
+            '<ins class="adsbygoogle" style="display:block" data-ad-client="' + ADSENSE_CLIENT + '" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>'
+            '<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>'
+            "</div>"
+        )
+
+    # رأس الصفحة + نفس MODERN_STYLE + نفس الحاوية/الكارد
+    head = (
+        "<!DOCTYPE html>"
+        + f'<html lang="{lang}" dir="{dir_attr}">'
+        + "<head>"
+        + '<meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        + f"<title>{page_title} - {get_translation(lang,'app_title')}</title>"
+        + MODERN_STYLE
+        + "</head>"
+        + "<body><div class='bg-animated'></div><div class='container'>"
+        + "<div class='card'>"
+        + "<div class='header'>"
+        + "<div class='logo-section'>"
+        + "<div class='logo-icon'>🎙️</div>"
+        + "<div>"
+        + f"<div class='title'>{get_translation(lang,'app_title')}</div>"
+        + "<div class='subtitle'>"
+        + f"{get_translation(lang,'dashboard')} • "
+        + "<a href='/dashboard' style='color:#cfd3ff;text-decoration:underline;'>Home</a>"
+        + "</div>"
+        + "</div></div>"
+        + "<div class='lang-switch'>"
+        + f"<button class='lang-btn {'active' if lang=='en' else ''}' onclick=\"window.location.search='?lang=en'\">EN</button>"
+        + f"<button class='lang-btn {'active' if lang=='ar' else ''}' onclick=\"window.location.search='?lang=ar'\">AR</button>"
+        + "</div></div>"
+        + f"<h1 style='margin:0 0 .5rem 0;'>{page_title}</h1>"
+        + "<div style='border-top:1px solid rgba(99,102,241,.2);margin:1.25rem 0;'></div>"
+        + "<div style='line-height:1.75;color:#e8eaff'>"  # محتوى الصفحة
+        + body_html
+        + "</div>"
+        + "</div>"  # .card
+        + ads_section
+        + "<div style='text-align:center;margin-top:2rem;color:#a1a8c3;font-size:0.875rem;'>"
+        + "© " + str(datetime.utcnow().year) + " Ultra Transcriber • "
+        + "<a href='/about' style='color:#a1a8c3;'>About</a> • "
+        + "<a href='/privacy' style='color:#a1a8c3;'>Privacy Policy</a> • "
+        + "<a href='/contact' style='color:#a1a8c3;'>Contact</a>"
+        + "</div>"
+        + "</div>"  # .container
+        + "</body></html>"
+    )
+    return HTMLResponse(head)
+
+
+# ---------------- Info Pages (use the same design) ----------------
+@app.get("/about", response_class=HTMLResponse)
+def about(lang: Optional[str] = "en"):
+    body = (
+        "<p><strong>Ultra Transcriber Pro</strong> is a transcription tool built for high accuracy and speed. "
+        "It supports multiple languages and is designed to handle long audio/video files efficiently.</p>"
+        "<p>Created by TechSolver • 2025</p>"
+    )
+    return render_simple_page("About Ultra Transcriber", body, lang or "en")
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy(lang: Optional[str] = "en"):
+    body = (
+        "<h2>Data Handling</h2>"
+        "<ul>"
+        "<li>Uploaded files are processed temporarily under <code>/tmp</code> and removed after transcription.</li>"
+        "<li>No permanent storage or third-party sharing.</li>"
+        "<li>HTTPS is required; do not upload sensitive content.</li>"
+        "</ul>"
+        "<h2>Contact</h2>"
+        "<p>Email: <a href='mailto:contact@ultratranscriber.com'>contact@ultratranscriber.com</a></p>"
+    )
+    return render_simple_page("Privacy Policy", body, lang or "en")
+
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact(lang: Optional[str] = "en"):
+    body = (
+        "<p>We’d love to hear from you. For support, feedback, or business inquiries:</p>"
+        "<p><a href='mailto:contact@ultratranscriber.com'>contact@ultratranscriber.com</a></p>"
+        "<p>Response time: within 24 hours.</p>"
+    )
+    return render_simple_page("Contact", body, lang or "en")
+
 
 
 # ---------------- Jobs helpers ----------------
@@ -933,6 +1036,38 @@ async def api_job(job_id: str):
         "zip_url": row["out_zip"],
         "merged_txt": row["merged_txt"] or "",
     }
+
+
+# ---------------- Static Info Pages ----------------
+@app.get("/about", response_class=HTMLResponse)
+def about():
+    html = """
+    <h1>About Ultra Transcriber</h1>
+    <p>Ultra Transcriber Pro is an AI-powered transcription tool built for high accuracy and speed.
+    It supports multiple languages and is designed to handle long audio or video files efficiently.</p>
+    <p>Created by TechSolver • 2025</p>
+    """
+    return HTMLResponse(html)
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy():
+    html = """
+    <h1>Privacy Policy</h1>
+    <p>We respect your privacy. Uploaded files are processed temporarily and deleted automatically
+    after transcription. No data is shared with third parties or stored permanently.</p>
+    <p>By using this service, you agree to our terms of use.</p>
+    """
+    return HTMLResponse(html)
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact():
+    html = """
+    <h1>Contact Us</h1>
+    <p>For inquiries, feedback, or support, please contact us at:
+    <a href='mailto:contact@ultratranscriber.com'>contact@ultratranscriber.com</a></p>
+    """
+    return HTMLResponse(html)
+
 
 
 # ---------------- Local run ----------------
